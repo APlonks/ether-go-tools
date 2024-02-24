@@ -3,10 +3,11 @@ package simulation
 import (
 	"context"
 	"crypto/ecdsa"
-	"ether-go-tools/internal/functions"
+	"ether-go-tools/internal/utils"
 	"fmt"
 	"log"
 	"math/big"
+	"math/rand/v2"
 	"sync"
 	"time"
 
@@ -45,21 +46,9 @@ func Simulation(client *ethclient.Client, richPrivKey *ecdsa.PrivateKey, richPub
 		fmt.Println("Public key:", wallet.AddressHex, "; Private key:", wallet.KeyHex)
 	}
 	SendEthers(client, richPrivKey, richPubKey, walletsTo, nbEthers)
-	// time.Sleep(13 * time.Second) // Waiting for a block
-	wg.Add(1)
-	go func() {
-		for {
-			fmt.Println("Hello")
-			time.Sleep(time.Millisecond * 10)
-		}
-	}()
-	func() {
-		for {
-			fmt.Println("World")
-			time.Sleep(time.Millisecond * 10)
-		}
-	}()
-	wg.Wait()
+	time.Sleep(13 * time.Second) // Waiting for a block
+
+	SendEthersFromAPoolToAPool(client, walletsFrom, walletsTo)
 
 }
 
@@ -100,6 +89,76 @@ func CreateWallets(numWallets int) []Wallet {
 	return wallets
 }
 
+func SendEthersFromAPoolToAPool(client *ethclient.Client, walletsFrom []Wallet, walletsTo []Wallet) {
+
+	var (
+		err      error
+		nbEthers int
+	)
+	_ = err
+	nbEthers = 1
+
+	wg.Add(1)
+	go func() {
+		for {
+			fmt.Println("Hello")
+			indexFrom := rand.IntN(cap(walletsFrom))
+			indexTo := rand.IntN(cap(walletsTo))
+			SendEthersToSpecificWallet(client, &walletsFrom[indexFrom].Key, walletsFrom[indexFrom].Address, walletsTo[indexTo], nbEthers)
+			time.Sleep(time.Millisecond * 1000)
+		}
+	}()
+	func() {
+		for {
+			fmt.Println("World")
+			indexFrom := rand.IntN(cap(walletsFrom))
+			indexTo := rand.IntN(cap(walletsTo))
+			SendEthersToSpecificWallet(client, &walletsTo[indexTo].Key, walletsTo[indexTo].Address, walletsFrom[indexFrom], nbEthers)
+			time.Sleep(time.Millisecond * 1000)
+		}
+	}()
+	wg.Wait()
+}
+
+func SendEthersToSpecificWallet(client *ethclient.Client, privateKey *ecdsa.PrivateKey, fromAddress common.Address, toWallet Wallet, nbEthers int) {
+	var (
+		nonce uint64
+		err   error
+	)
+	fmt.Println("Going to send ethers to a specific Wallet")
+	nonce, err = client.PendingNonceAt(context.Background(), fromAddress)
+	utils.ErrManagement(err)
+
+	// Convert nbEthers (int) en big.Int
+	amount := big.NewInt(int64(nbEthers))
+	// Convert Ethers to Wei (1 Ether = 1e18 Wei)
+	weiValue := new(big.Int).Mul(amount, big.NewInt(0))
+
+	value := weiValue         // in wei (1 eth)
+	gasLimit := uint64(21000) // in units
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Gas price:", gasPrice)
+
+	var data []byte
+	tx := types.NewTransaction(nonce, toWallet.Address, value, gasLimit, gasPrice, data)
+	chainID, err := client.ChainID(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func SendEthers(client *ethclient.Client, privateKey *ecdsa.PrivateKey, fromAddress common.Address, wallets []Wallet, nbEthers int) {
 
 	var (
@@ -109,7 +168,7 @@ func SendEthers(client *ethclient.Client, privateKey *ecdsa.PrivateKey, fromAddr
 
 	for _, wallet := range wallets {
 		nonce, err = client.PendingNonceAt(context.Background(), fromAddress)
-		functions.ErrManagement(err)
+		utils.ErrManagement(err)
 
 		// Convert nbEthers (int) en big.Int
 		amount := big.NewInt(int64(nbEthers))
@@ -139,5 +198,4 @@ func SendEthers(client *ethclient.Client, privateKey *ecdsa.PrivateKey, fromAddr
 		// fmt.Printf("tx sent: %s", signedTx.Hash().Hex())
 		// fmt.Println()
 	}
-
 }

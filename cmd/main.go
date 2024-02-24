@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"ether-go-tools/internal/functions"
 	"ether-go-tools/internal/simulation"
+	"ether-go-tools/internal/utils"
 	"fmt"
 	"log"
 
@@ -22,7 +23,20 @@ func main() {
 		richPrivKey           *ecdsa.PrivateKey
 		richPubKey            common.Address
 		nbEthers              int
+		config                *utils.Config
 	)
+
+	// Generate our config based on the config supplied
+	// by the user in the flags
+	configPath, err := utils.ParseFlags()
+	if err != nil {
+		log.Fatalf("Failed to parse flags: %v", err)
+	}
+
+	config, err = utils.LoadConfig(configPath)
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
 
 	http_endpoint = "http://localhost:8545"
 	rich_account_priv_key = "2e0834786285daccd064ca17f1654f67b4aef298acbb82cef9ec422fb4975622"
@@ -33,7 +47,7 @@ func main() {
 	}
 
 	client, err = ethclient.Dial(http_endpoint)
-	functions.ErrManagement(err)
+	utils.ErrManagement(err)
 
 	for {
 		fmt.Println("Choose what do u want to do:")
@@ -60,7 +74,6 @@ func main() {
 			functions.SendEthers(client, richPrivKey, richPubKey)
 		case 5:
 			fmt.Println("Create Life Simulation")
-
 			nbEthers = 1     // Add it to conf file
 			numWallets := 10 // Add it to conf file
 			simulation.Simulation(client, richPrivKey, richPubKey, numWallets, nbEthers)

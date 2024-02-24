@@ -1,5 +1,5 @@
-accounts: 10
 
-ethers: 10
-
-transactions: #per seconds
+simulation:
+  accounts: 10    #Accounts per wallets
+  ethers: 1       #ethers sended per transactions
+  sleep: 1        #per seconds

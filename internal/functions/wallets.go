@@ -3,6 +3,7 @@ package functions
 import (
 	"context"
 	"crypto/ecdsa"
+	"ether-go-tools/internal/utils"
 	"fmt"
 	"hash"
 	"log"
@@ -80,7 +81,7 @@ func SendEthers(client *ethclient.Client, privateKey *ecdsa.PrivateKey, fromAddr
 
 	fmt.Println("How much ethers to send ?")
 	_, err = fmt.Scanf("%d", &nbEthers)
-	ErrManagement(err)
+	utils.ErrManagement(err)
 
 	nbEthers = nbEthers * 1000000000000000000
 
