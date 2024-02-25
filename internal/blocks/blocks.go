@@ -1,11 +1,13 @@
-package functions
+package blocks
 
 import (
 	"context"
 	"fmt"
 	"log"
 	"math/big"
+	"time"
 
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
@@ -16,7 +18,7 @@ func Blockheader(client *ethclient.Client) {
 		input  int
 	)
 
-	fmt.Print("Which block ? : ")
+	fmt.Print("Which block number ? : ")
 	_, err := fmt.Scanf("%d", &input)
 	if err != nil {
 		fmt.Println("Erreur lors de la lecture de l'entrée :", err)
@@ -42,7 +44,7 @@ func Blockfull(client *ethclient.Client) {
 		input  int
 	)
 
-	fmt.Print("Which block ? : ")
+	fmt.Print("Which block number ? : ")
 	_, err := fmt.Scanf("%d", &input)
 	if err != nil {
 		fmt.Println("Erreur lors de la lecture de l'entrée :", err)
@@ -64,4 +66,35 @@ func Blockfull(client *ethclient.Client) {
 	fmt.Println("Transactions list:", block.Transactions())
 
 	fmt.Println()
+}
+
+func ListeningBlock(wsClient *ethclient.Client) {
+
+	headers := make(chan *types.Header)
+	sub, err := wsClient.SubscribeNewHead(context.Background(), headers)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for {
+		select {
+		case err := <-sub.Err():
+			log.Fatal(err)
+		case header := <-headers:
+			block, err := wsClient.BlockByHash(context.Background(), header.Hash())
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println("----------")
+			fmt.Println("At", time.Unix(int64(block.Time()), 0).Format("02 January 2006 15:04:05 MST,"))
+			fmt.Println("block number:", block.Number().Uint64())
+			fmt.Println("Hash:", block.Hash().Hex())
+			fmt.Println("Transactions:", len(block.Transactions()))
+			fmt.Println("Gas Limit:", block.GasLimit())
+			fmt.Println("Gas Used:", block.GasUsed())
+			fmt.Println("Base Fee", block.BaseFee())
+			fmt.Println("----------")
+			fmt.Println()
+		}
+	}
 }

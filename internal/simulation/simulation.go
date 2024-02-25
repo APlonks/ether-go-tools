@@ -38,22 +38,22 @@ func Simulation(wsClient *ethclient.Client, richPrivKey *ecdsa.PrivateKey, richP
 	for _, wallet := range walletsFrom {
 		fmt.Println("Public key:", wallet.AddressHex, "; Private key:", wallet.KeyHex)
 	}
-	SendEthers(wsClient, richPrivKey, richPubKey, walletsFrom, nbEthers)
+	SendEthers(wsClient, richPrivKey, richPubKey, walletsFrom, 1)
 
 	walletsTo = CreateWallets(numWallets)
 	fmt.Println("Second list of accounts")
 	for _, wallet := range walletsTo {
 		fmt.Println("Public key:", wallet.AddressHex, "; Private key:", wallet.KeyHex)
 	}
-	SendEthers(wsClient, richPrivKey, richPubKey, walletsTo, nbEthers)
-	// time.Sleep(13 * time.Second) // Waiting for a block
+	SendEthers(wsClient, richPrivKey, richPubKey, walletsTo, 1)
+
+	time.Sleep(13 * time.Second) // Waiting for a block
 
 	headers := make(chan *types.Header)
 	sub, err := wsClient.SubscribeNewHead(context.Background(), headers)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	for {
 		select {
 		case err := <-sub.Err():
@@ -64,7 +64,9 @@ func Simulation(wsClient *ethclient.Client, richPrivKey *ecdsa.PrivateKey, richP
 				log.Fatal(err)
 			}
 			fmt.Println("Going for block number:", (block.Number().Uint64() + 1)) // 3477413
+			fmt.Println(wsClient.BalanceAt(context.Background(), walletsFrom[0].Address, nil))
 			SendEthersFromAPoolToAPool(wsClient, walletsFrom, walletsTo, numTransactions)
+			fmt.Println(numTransactions, "transactions sended")
 		}
 	}
 
@@ -115,14 +117,10 @@ func SendEthersFromAPoolToAPool(client *ethclient.Client, walletsFrom []Wallet, 
 	)
 	_ = err
 	nbEthers = 1
-
-	fmt.Println("Entering in SendEthersFromAPoolToaPool")
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done() // Ceci s'assurera que wg.Done() est appelé à la fin de la goroutine
 		for i := 0; i < numTransactions/2; i++ {
-			fmt.Println("Hello")
 			indexFrom := rand.IntN(cap(walletsFrom))
 			indexTo := rand.IntN(cap(walletsTo))
 			SendEthersToSpecificWallet(client, &walletsFrom[indexFrom].Key, walletsFrom[indexFrom].Address, walletsTo[indexTo], nbEthers)
@@ -130,11 +128,7 @@ func SendEthersFromAPoolToAPool(client *ethclient.Client, walletsFrom []Wallet, 
 		}
 	}()
 	func() {
-		fmt.Println("Entering ano function")
-		fmt.Println("numTransactions:", numTransactions)
-		fmt.Println(1 < numTransactions)
 		for i := 0; i < numTransactions/2; i++ {
-			fmt.Println("World")
 			indexFrom := rand.IntN(cap(walletsFrom))
 			indexTo := rand.IntN(cap(walletsTo))
 			SendEthersToSpecificWallet(client, &walletsTo[indexTo].Key, walletsTo[indexTo].Address, walletsFrom[indexFrom], nbEthers)
@@ -151,7 +145,6 @@ func SendEthersToSpecificWallet(client *ethclient.Client, privateKey *ecdsa.Priv
 	)
 	nonce, err = client.PendingNonceAt(context.Background(), fromAddress)
 	utils.ErrManagement(err)
-
 	// Convert nbEthers (int) en big.Int
 	amount := big.NewInt(int64(nbEthers))
 	// Convert Ethers to Wei (1 Ether = 1e18 Wei)
@@ -163,7 +156,6 @@ func SendEthersToSpecificWallet(client *ethclient.Client, privateKey *ecdsa.Priv
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	var data []byte
 	tx := types.NewTransaction(nonce, toWallet.Address, value, gasLimit, gasPrice, data)
 	chainID, err := client.ChainID(context.Background())
@@ -178,6 +170,7 @@ func SendEthersToSpecificWallet(client *ethclient.Client, privateKey *ecdsa.Priv
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Transaction")
 }
 
 func SendEthers(client *ethclient.Client, privateKey *ecdsa.PrivateKey, fromAddress common.Address, wallets []Wallet, nbEthers int) {
@@ -186,11 +179,11 @@ func SendEthers(client *ethclient.Client, privateKey *ecdsa.PrivateKey, fromAddr
 		nonce uint64
 		err   error
 	)
-
+	i := 0
 	for _, wallet := range wallets {
 		nonce, err = client.PendingNonceAt(context.Background(), fromAddress)
 		utils.ErrManagement(err)
-
+		fmt.Println("Nonce:", nonce)
 		// Convert nbEthers (int) en big.Int
 		amount := big.NewInt(int64(nbEthers))
 		// Convert Ethers to Wei (1 Ether = 1e18 Wei)
@@ -218,29 +211,6 @@ func SendEthers(client *ethclient.Client, privateKey *ecdsa.PrivateKey, fromAddr
 		}
 		// fmt.Printf("tx sent: %s", signedTx.Hash().Hex())
 		// fmt.Println()
-	}
-}
-
-func ListeningBlock(wsClient *ethclient.Client) {
-
-	headers := make(chan *types.Header)
-	sub, err := wsClient.SubscribeNewHead(context.Background(), headers)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for {
-		select {
-		case err := <-sub.Err():
-			log.Fatal(err)
-		case header := <-headers:
-			block, err := wsClient.BlockByHash(context.Background(), header.Hash())
-			if err != nil {
-				log.Fatal(err)
-			}
-			// fmt.Println(block.Hash().Hex())                                                                                                                          // 0xbc10defa8dda384c96a17640d84de5578804945d347072e091b4e5f390ddea7f
-			fmt.Println("At", time.Unix(int64(block.Time()), 0).Format("02 January 2006 15:04:05 MST,"), "block number:", block.Number().Uint64(), "has been mined") // 3477413
-			fmt.Println(len(block.Transactions()), "transactions done")                                                                                              // 7
-		}
+		i = i + 1
 	}
 }

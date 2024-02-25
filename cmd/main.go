@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/ecdsa"
+	"ether-go-tools/internal/blocks"
 	"ether-go-tools/internal/functions"
 	"ether-go-tools/internal/simulation"
 	"ether-go-tools/internal/utils"
@@ -44,7 +45,7 @@ func main() {
 		fmt.Println("Choose what do u want to do:")
 		fmt.Println("1: Create a new account")
 		fmt.Println("2: Retrieve information header about a block")
-		fmt.Println("3: Retrieve compete information about a block")
+		fmt.Println("3: Retrieve complete information about a block")
 		fmt.Println("4: Send Ethers from a rich account to an account")
 		fmt.Println("5: Create Life Simulation")
 		fmt.Println("6: Listening for blocks")
@@ -57,10 +58,10 @@ func main() {
 			functions.CreateWallet()
 		case 2:
 			fmt.Println("Retrieve information header about a block")
-			functions.Blockheader(clientHttp)
+			blocks.Blockheader(clientHttp)
 		case 3:
-			fmt.Println("Retrieve compete information about a block")
-			functions.Blockfull(clientHttp)
+			fmt.Println("Retrieve complete information about a block")
+			blocks.Blockfull(clientHttp)
 		case 4:
 			fmt.Println("Send Ethers from a rich account to an account")
 			functions.SendEthers(clientHttp, richPrivKey, richPubKey)
@@ -69,7 +70,7 @@ func main() {
 			simulation.Simulation(clientWs, richPrivKey, richPubKey, config.Simulation.Accounts, config.Simulation.Ethers, config.Simulation.Transactions)
 		case 6:
 			fmt.Println("6: Listening for blocks")
-			simulation.ListeningBlock(clientWs)
+			blocks.ListeningBlock(clientWs)
 		default:
 			fmt.Println("Function not implemented")
 
