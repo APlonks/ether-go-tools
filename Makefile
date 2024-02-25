@@ -7,8 +7,7 @@ build:
 	go build -o build/main cmd/main.go
 
 run:
-	go run cmd/main.go
-
+	./build/main -config config.yaml
 
 compile:
 	echo "Compiling for every OS and Platform"

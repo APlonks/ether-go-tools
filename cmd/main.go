@@ -6,7 +6,6 @@ import (
 	"ether-go-tools/internal/simulation"
 	"ether-go-tools/internal/utils"
 	"fmt"
-	"log"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -15,38 +14,30 @@ import (
 func main() {
 
 	var (
-		client                *ethclient.Client
-		err                   error
-		choice                int
-		http_endpoint         string
-		rich_account_priv_key string
-		richPrivKey           *ecdsa.PrivateKey
-		richPubKey            common.Address
-		nbEthers              int
-		config                *utils.Config
+		clientHttp  *ethclient.Client
+		clientWs    *ethclient.Client
+		err         error
+		choice      int
+		richPrivKey *ecdsa.PrivateKey
+		richPubKey  common.Address
+		config      *utils.Config
 	)
 
 	// Generate our config based on the config supplied
 	// by the user in the flags
 	configPath, err := utils.ParseFlags()
-	if err != nil {
-		log.Fatalf("Failed to parse flags: %v", err)
-	}
+	utils.ErrManagement(err)
 
 	config, err = utils.LoadConfig(configPath)
-	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
-	}
+	utils.ErrManagement(err)
 
-	http_endpoint = "http://localhost:8545"
-	rich_account_priv_key = "2e0834786285daccd064ca17f1654f67b4aef298acbb82cef9ec422fb4975622"
+	richPrivKey, richPubKey, err = functions.RetrieveKeysFromHexHashedPrivateKey(config.Connection.Rich_private_key)
+	utils.ErrManagement(err)
 
-	richPrivKey, richPubKey, err = functions.RetrieveKeysFromHexHashedPrivateKey(rich_account_priv_key)
-	if err != nil {
-		log.Fatal("Cannot retrieve Private and Public keys")
-	}
+	clientHttp, err = ethclient.Dial(config.Connection.Http_endpoint)
+	utils.ErrManagement(err)
 
-	client, err = ethclient.Dial(http_endpoint)
+	clientWs, err = ethclient.Dial(config.Connection.Ws_endpoint)
 	utils.ErrManagement(err)
 
 	for {
@@ -56,6 +47,7 @@ func main() {
 		fmt.Println("3: Retrieve compete information about a block")
 		fmt.Println("4: Send Ethers from a rich account to an account")
 		fmt.Println("5: Create Life Simulation")
+		fmt.Println("6: Listening for blocks")
 
 		fmt.Println()
 		fmt.Scanf("%d", &choice)
@@ -65,18 +57,19 @@ func main() {
 			functions.CreateWallet()
 		case 2:
 			fmt.Println("Retrieve information header about a block")
-			functions.Blockheader(client)
+			functions.Blockheader(clientHttp)
 		case 3:
 			fmt.Println("Retrieve compete information about a block")
-			functions.Blockfull((client))
+			functions.Blockfull(clientHttp)
 		case 4:
 			fmt.Println("Send Ethers from a rich account to an account")
-			functions.SendEthers(client, richPrivKey, richPubKey)
+			functions.SendEthers(clientHttp, richPrivKey, richPubKey)
 		case 5:
 			fmt.Println("Create Life Simulation")
-			nbEthers = 1     // Add it to conf file
-			numWallets := 10 // Add it to conf file
-			simulation.Simulation(client, richPrivKey, richPubKey, numWallets, nbEthers)
+			simulation.Simulation(clientWs, richPrivKey, richPubKey, config.Simulation.Accounts, config.Simulation.Ethers, config.Simulation.Transactions)
+		case 6:
+			fmt.Println("6: Listening for blocks")
+			simulation.ListeningBlock(clientWs)
 		default:
 			fmt.Println("Function not implemented")
 

@@ -34,7 +34,7 @@ func CreateWallet() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Private key in *ecdsa.PrivateKey format", privateKey)
+	// fmt.Println("Private key in *ecdsa.PrivateKey format", privateKey)
 	privateKeyBytes := crypto.FromECDSA(privateKey)
 	fmt.Println("Private key in hex format:", hexutil.Encode(privateKeyBytes)[2:]) // fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19
 
@@ -48,7 +48,8 @@ func CreateWallet() {
 	// fmt.Println("EDCSA public key in Slice of bytes",hexutil.Encode(publicKeyBytes)[4:]) // 9a7df67f79246283fdc93af76d4f8cdd62c4886e8cd870944e817dd0b97934fdd7719d0810951e03418205868a5c1b40b192451367f28e0088dd75e15de40c05
 
 	address = crypto.PubkeyToAddress(*publicKeyECDSA).Hex()
-	fmt.Println("Public key in common.Address (hex) format:", address) // 0x96216849c49358B10257cb55b28eA603c874b05E
+	_ = address
+	// fmt.Println("Public key in common.Address (hex) format:", address) // 0x96216849c49358B10257cb55b28eA603c874b05E
 
 	hash = sha3.NewLegacyKeccak256()
 	hash.Write(publicKeyBytes[1:])
@@ -73,6 +74,9 @@ func SendEthers(client *ethclient.Client, privateKey *ecdsa.PrivateKey, fromAddr
 	if err != nil {
 		log.Fatal("Cannot read the address which will receive ethers")
 	}
+
+	isValid := utils.IsValidAddress(toaddr)
+	fmt.Println("Is the address valid?", isValid)
 
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {

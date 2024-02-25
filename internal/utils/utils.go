@@ -5,15 +5,22 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 
+	"github.com/ethereum/go-ethereum/common"
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
+	Connection struct {
+		Rich_private_key string `yaml:"rich_private_key"`
+		Http_endpoint    string `yaml:"http_endpoint"`
+		Ws_endpoint      string `yaml:"ws_endpoint"`
+	} `yaml:"connection"`
 	Simulation struct {
-		Accounts int `yaml:"accounts"`
-		Ethers   int `yaml:"ethers"`
-		Sleep    int `yaml:"sleep"`
+		Accounts     int `yaml:"accounts"`
+		Ethers       int `yaml:"ethers"`
+		Transactions int `yaml:"transactions"`
 	} `yaml:"simulation"`
 }
 
@@ -50,6 +57,19 @@ func ParseFlags() (string, error) {
 
 	// Return the configuration path
 	return configPath, nil
+}
+
+// IsValidAddress validate hex address
+func IsValidAddress(iaddress interface{}) bool {
+	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
+	switch v := iaddress.(type) {
+	case string:
+		return re.MatchString(v)
+	case common.Address:
+		return re.MatchString(v.Hex())
+	default:
+		return false
+	}
 }
 
 func ErrManagement(err error) {
