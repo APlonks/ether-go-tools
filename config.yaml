@@ -5,4 +5,4 @@ connection:
 simulation:
   accounts: 10    #Accounts per wallets
   ethers: 1       #ethers sended per transactions
-  transactions: 10  #Transactions per blocks, choose a pair number
+  transactions: 100  #Transactions per blocks, choose a pair number

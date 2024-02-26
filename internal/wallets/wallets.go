@@ -1,4 +1,4 @@
-package functions
+package wallets
 
 import (
 	"context"
@@ -16,6 +16,18 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"golang.org/x/crypto/sha3"
 )
+
+type Wallet struct {
+	Key        ecdsa.PrivateKey
+	KeyHex     string
+	Address    common.Address
+	AddressHex string
+}
+
+func NewWallets(key *ecdsa.PrivateKey, keyHex string, address common.Address, addressHex string) Wallet {
+	wallet := Wallet{Key: *key, KeyHex: keyHex, Address: address, AddressHex: addressHex}
+	return wallet
+}
 
 func CreateWallet() {
 
@@ -36,7 +48,7 @@ func CreateWallet() {
 	}
 	// fmt.Println("Private key in *ecdsa.PrivateKey format", privateKey)
 	privateKeyBytes := crypto.FromECDSA(privateKey)
-	fmt.Println("Private key in hex format:", hexutil.Encode(privateKeyBytes)[2:]) // fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19
+	fmt.Println("Private key in hex format:", hexutil.Encode(privateKeyBytes)[:]) // 0xfad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19
 
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok = publicKey.(*ecdsa.PublicKey)
@@ -59,7 +71,39 @@ func CreateWallet() {
 	fmt.Println()
 }
 
-func SendEthers(client *ethclient.Client, privateKey *ecdsa.PrivateKey, fromAddress common.Address) {
+func CreateWallets(numWallets int) []Wallet {
+
+	wallets := make([]Wallet, numWallets)
+
+	for i := 0; i < numWallets; i++ {
+		privateKey, err := crypto.GenerateKey()
+		if err != nil {
+			log.Fatal(err)
+		}
+		privateKeyBytes := crypto.FromECDSA(privateKey)
+		// fmt.Println("The private key:", hexutil.Encode(privateKeyBytes))
+
+		publicKey := privateKey.Public()
+		publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+		if !ok {
+			log.Fatal("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+		}
+
+		publicKeyBytes := crypto.FromECDSAPub(publicKeyECDSA)
+
+		address := crypto.PubkeyToAddress(*publicKeyECDSA)
+
+		hash := sha3.NewLegacyKeccak256()
+		hash.Write(publicKeyBytes[1:])
+		// fmt.Println("The public key:", hexutil.Encode(hash.Sum(nil)[12:]))
+
+		wallets[i] = NewWallets(privateKey, hexutil.Encode(privateKeyBytes), address, hexutil.Encode(hash.Sum(nil)[12:]))
+	}
+
+	return wallets
+}
+
+func SendEthersCli(client *ethclient.Client, privateKey *ecdsa.PrivateKey, fromAddress common.Address) {
 
 	var (
 		toaddr   string

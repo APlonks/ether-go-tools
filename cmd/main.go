@@ -3,9 +3,9 @@ package main
 import (
 	"crypto/ecdsa"
 	"ether-go-tools/internal/blocks"
-	"ether-go-tools/internal/functions"
 	"ether-go-tools/internal/simulation"
 	"ether-go-tools/internal/utils"
+	"ether-go-tools/internal/wallets"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -32,7 +32,7 @@ func main() {
 	config, err = utils.LoadConfig(configPath)
 	utils.ErrManagement(err)
 
-	richPrivKey, richPubKey, err = functions.RetrieveKeysFromHexHashedPrivateKey(config.Connection.Rich_private_key)
+	richPrivKey, richPubKey, err = wallets.RetrieveKeysFromHexHashedPrivateKey(config.Connection.Rich_private_key)
 	utils.ErrManagement(err)
 
 	clientHttp, err = ethclient.Dial(config.Connection.Http_endpoint)
@@ -55,7 +55,7 @@ func main() {
 		switch choice {
 		case 1:
 			fmt.Println("Create a new account")
-			functions.CreateWallet()
+			wallets.CreateWallet()
 		case 2:
 			fmt.Println("Retrieve information header about a block")
 			blocks.Blockheader(clientHttp)
@@ -64,7 +64,7 @@ func main() {
 			blocks.Blockfull(clientHttp)
 		case 4:
 			fmt.Println("Send Ethers from a rich account to an account")
-			functions.SendEthers(clientHttp, richPrivKey, richPubKey)
+			wallets.SendEthersCli(clientHttp, richPrivKey, richPubKey)
 		case 5:
 			fmt.Println("Create Life Simulation")
 			simulation.Simulation(clientWs, richPrivKey, richPubKey, config.Simulation.Accounts, config.Simulation.Ethers, config.Simulation.Transactions)
@@ -73,8 +73,6 @@ func main() {
 			blocks.ListeningBlock(clientWs)
 		default:
 			fmt.Println("Function not implemented")
-
 		}
 	}
-
 }
